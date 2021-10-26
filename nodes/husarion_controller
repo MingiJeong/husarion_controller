@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+
+"""
+    husarion_controller.py
+
+    purpose: 
+    - NODE for main husarion controller
+"""
+
+# import relevant libraries
+import rospy
+
+# import custom moduels
+from husarion_controller.rosbot_setup import ROSBOT
+
+def main():
+    rosbot = ROSBOT()
+
+    rospy.on_shutdown(rosbot.stop)
+    
+    try:
+       rosbot.spin()
+
+    except rospy.ROSInterruptException:
+        rospy.logerr("ROS Node interrupted")
+
+if __name__ == "__main__":
+    
+    # Sleep for a few seconds to wait for the registration.
+    rospy.init_node("basic_controller")
+    
+    # Sleep for a few seconds to wait for the registration.
+    rospy.sleep(2)
+    main()
