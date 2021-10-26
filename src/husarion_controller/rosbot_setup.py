@@ -12,7 +12,7 @@ import math
 # constants
 FREQUENCY = 10 # Hz
 LIN_VEL = 0.2 # m/s
-ANG_VEL = 0.2 # rad/s
+ANG_VEL = math.pi/8 # rad/s
 
 DEFAULT_CMD_VEL = 'cmd_vel'
 DEFAULT_SCAN = 'scan'
@@ -27,13 +27,15 @@ class ROSBOT():
         # publisher and subscriber
         self._cmd_pub = rospy.Publisher(DEFAULT_CMD_VEL, Twist, queue_size=1)
         # self._laser_sub =rospy.Subscriber(DEFAULT_SCAN, LaserScan, self._laser_callback, queue_size=1)
-        
+        self.lin_vel = LIN_VEL
+        self.ang_vel = ANG_VEL
+
 
     def move(self, lin_vel, ang_vel):
         """Send a velocity command (linear vel in m/s, angular vel in rad/s)."""
         twist_msg = Twist()
-        twist_msg.linear.x = lin_vel
-        twist_msg.angular.z = ang_vel
+        twist_msg.linear.x = self.lin_vel
+        twist_msg.angular.z = self.ang_vel
 
         self._cmd_pub.publish(twist_msg)
 
@@ -43,8 +45,70 @@ class ROSBOT():
         self._cmd_pub.publish(twist_msg)
 
 
-    def spin(self):
-        while not rospy.is_shutdown():
-            self.move(LIN_VEL, 0)
+    def translate(self, distance):
+        """
+        Function to move forward for a given distance
+        """
+        twist_msg = Twist()
+        twist_msg.linear.x = self.lin_vel
 
-            self.rate.sleep()
+        start_time = rospy.get_rostime()
+        duration = rospy.Duration(distance / self.lin_vel)
+
+        while not rospy.is_shutdown():
+            if rospy.get_rostime() - start_time >= duration:
+                break
+
+            else:
+                self._cmd_pub.publish(twist_msg)
+                self.rate.sleep()
+
+        # stopper
+        self.stop()
+
+
+    def rotate_rel(self, angle):
+        """
+        Rotate in place the robot of rotation_angle (rad) based on fixed velocity.
+        depending on the rotation direction (sign of angle)
+        """
+
+        twist_msg = Twist()
+        twist_msg.angular.z = self.ang_vel
+
+        if angle >= 0: # counter-clockwise True
+            twist_msg.angular.z = self.angular_velocity
+        else: # counter-clockwise False, i.e., clockwise
+            twist_msg.angular.z = - self.angular_velocity
+
+        start_time = rospy.get_rostime()
+        duration = rospy.Duration(angle / self.ang_vel)
+
+        while not rospy.is_shutdown():
+            if rospy.get_rostime() - start_time >= duration:
+                break
+
+            else:
+                self._cmd_pub.publish(twist_msg)
+                self.rate.sleep()
+        
+        # stopper
+        self.stop()
+
+
+    def spin(self):
+        # while not rospy.is_shutdown():
+        try: 
+            self.translate(1)
+            rospy.loginfo("translation finish")
+
+            self.rotate_rel(math.pi/6)
+            rospy.loginfo("rotation 1 finish")
+
+            self.rotate_rel(- math.pi/6)
+            rospy.loginfo("rotation 2 finish")
+
+            # self.rate.sleep()
+
+        except rospy.ROSInterruptException:
+            rospy.logerr("ROS node interrupted.")
