@@ -12,7 +12,7 @@ import math
 # constants
 FREQUENCY = 10 # Hz
 LIN_VEL = 0.2 # m/s
-ANG_VEL = math.pi/8 # rad/s
+ANG_VEL = math.pi/18 # rad/s
 
 DEFAULT_CMD_VEL = 'cmd_vel'
 DEFAULT_SCAN = 'scan'
@@ -74,15 +74,15 @@ class ROSBOT():
         """
 
         twist_msg = Twist()
-        twist_msg.angular.z = self.ang_vel
+        # twist_msg.angular.z = self.ang_vel
 
         if angle >= 0: # counter-clockwise True
-            twist_msg.angular.z = self.angular_velocity
+            twist_msg.angular.z = self.ang_vel
         else: # counter-clockwise False, i.e., clockwise
-            twist_msg.angular.z = - self.angular_velocity
+            twist_msg.angular.z = - self.ang_vel
 
         start_time = rospy.get_rostime()
-        duration = rospy.Duration(angle / self.ang_vel)
+        duration = rospy.Duration(abs(angle) / self.ang_vel)
 
         while not rospy.is_shutdown():
             if rospy.get_rostime() - start_time >= duration:
