@@ -30,7 +30,7 @@ include_directories(
 )
 
 catkin_install_python(PROGRAMS
-   nodes/husarion_controller
+   nodes/main_controller
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

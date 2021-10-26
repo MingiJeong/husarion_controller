@@ -26,7 +26,7 @@ class ROSBOT():
 
         # publisher and subscriber
         self._cmd_pub = rospy.Publisher(DEFAULT_CMD_VEL, Twist, queue_size=1)
-        self._laser_sub =rospy.Subscriber(DEFAULT_SCAN, LaserScan, self._laser_callback, queue_size=1)
+        # self._laser_sub =rospy.Subscriber(DEFAULT_SCAN, LaserScan, self._laser_callback, queue_size=1)
         
 
     def move(self, lin_vel, ang_vel):
