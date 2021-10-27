@@ -56,13 +56,15 @@ class Mapper():
         map_msg.info.height = self.height
         map_msg.data = range(self.width * self.height)
 
-        map_msg.info.origin.position.x = 0
-        map_msg.info.origin.position.y = 0
+        map_msg.info.origin.position.x = -2.5
+        map_msg.info.origin.position.y = -2.5
 
         _grid_1d = np.zeros(len(map_msg.data))
         _grid_1d[:] = -1 # unknown
 
         _grid_2d = np.reshape(_grid_1d, (self.height, self.width))
+
+        map_msg.data = _grid_1d.astype(np.uint8)
 
         self._map_pub.publish(map_msg)
         self.rate.sleep()
