@@ -96,7 +96,8 @@ class Mapper():
 
 
     def _laser_callback(self, laser_msg):
-	self.static_broadcaster()
+        
+        self.static_broadcaster()
 
         # process laser data once we receive initial data
         if self.laser_data_update == MapLaserUpdate.received:
