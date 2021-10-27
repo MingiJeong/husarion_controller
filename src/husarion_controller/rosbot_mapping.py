@@ -97,11 +97,10 @@ class Mapper():
 
     def _laser_callback(self, laser_msg):
         
-    
-
         # process laser data once we receive initial data
         if self.laser_data_update == MapLaserUpdate.received:
-            transformed_coor = []
+            global transformed_coord
+            transformed_coord = []
 
             # transformation matrix 
             self.map_T_scan = self.get_transform_scan_to_map() # scan wrt map
@@ -112,14 +111,23 @@ class Mapper():
                 
                 # rospy.loginfo("transformation working well {} {}".format(map_T_scan, map_T_odom))
                 for i, data in enumerate(laser_msg.ranges):
-                    transformed_coor.append(np.dot(self.map_T_scan, data))
+                    self.process_scanpoint_to_vec(i, data, laser_msg)
 
-                rospy.loginfo("transformed {}".format(transformed_coor))
+                rospy.loginfo("transformed {}".format(transformed_coord))
 
                 # do something for mapping
                 self.build_map()
 
 
+    def process_scanpoint_to_vec(self, i, data, laser_msg):
+        
+        angle = laser_msg.angle_min + i * laser_msg.angle_increment
+        x = data * np.cos(angle)
+        y = data * np.sin(angle)
+
+        transformed_coord.append(self.map_T_scan.dot(np.transpose(np.array([x,y,0,1]))))
+
+        
     def check_mapping_condition(self):
         """
         check the pre-requisite valid mapping conditions are met
@@ -226,31 +234,31 @@ class Mapper():
         """
         obtain transformation matrix between odom and map
         """
-        # try:
-        self._tf_listener.waitForTransform(DEFAULT_MAP_FRAME,
-                                        DEFAULT_BASE_LINK_FRAME, 
-                                        rospy.Time(0), 
-                                        rospy.Duration(TRANSFORM_DURATION))
+        try:
+            self._tf_listener.waitForTransform(DEFAULT_MAP_FRAME,
+                                            DEFAULT_BASE_LINK_FRAME, 
+                                            rospy.Time(0), 
+                                            rospy.Duration(TRANSFORM_DURATION))
 
-        (trans, rot) = self._tf_listener.lookupTransform(DEFAULT_MAP_FRAME,
-                                                        DEFAULT_BASE_LINK_FRAME,
-                                                        rospy.Time(0))
-    
-        t = tf.transformations.translation_matrix(trans)
-        R = tf.transformations.quaternion_matrix(rot) 
+            (trans, rot) = self._tf_listener.lookupTransform(DEFAULT_MAP_FRAME,
+                                                            DEFAULT_BASE_LINK_FRAME,
+                                                            rospy.Time(0))
+        
+            t = tf.transformations.translation_matrix(trans)
+            R = tf.transformations.quaternion_matrix(rot) 
 
-        # acqurie robot pose wrt "MAP"
-        self.robot_pose_x_wrt_map = t[0] # x
-        self.robot_pose_y_wrt_map = t[1] # y
+            # acqurie robot pose wrt "MAP"
+            self.robot_pose_x_wrt_map = t[0] # x
+            self.robot_pose_y_wrt_map = t[1] # y
 
-        (_,_,yaw) = euler_from_quaternion(rot)
-        self.robot_heading_wrt_map = yaw # theta
+            (_,_,yaw) = euler_from_quaternion(rot)
+            self.robot_heading_wrt_map = yaw # theta
 
-        return np.dot(t, R)
+            return np.dot(t, R)
 
-        # except:
-        #     rospy.loginfo("transformation not working from %s to %s" 
-        #                     %(DEFAULT_BASE_LINK_FRAME, DEFAULT_MAP_FRAME))
+        except:
+            rospy.loginfo("transformation not working from %s to %s" 
+                            %(DEFAULT_BASE_LINK_FRAME, DEFAULT_MAP_FRAME))
 
 
     def static_broadcaster(self):
