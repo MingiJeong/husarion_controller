@@ -226,31 +226,31 @@ class Mapper():
         """
         obtain transformation matrix between odom and map
         """
-        try:
-            self._tf_listener.waitForTransform(DEFAULT_MAP_FRAME,
-                                            DEFAULT_BASE_LINK_FRAME, 
-                                            rospy.Time(0), 
-                                            rospy.Duration(TRANSFORM_DURATION))
+        # try:
+        self._tf_listener.waitForTransform(DEFAULT_MAP_FRAME,
+                                        DEFAULT_BASE_LINK_FRAME, 
+                                        rospy.Time(0), 
+                                        rospy.Duration(TRANSFORM_DURATION))
 
-            (trans, rot) = self._tf_listener.lookupTransform(DEFAULT_MAP_FRAME,
-                                                            DEFAULT_BASE_LINK_FRAME,
-                                                            rospy.Time(0))
-        
-            t = tf.transformations.translation_matrix(trans)
-            R = tf.transformations.quaternion_matrix(rot) 
+        (trans, rot) = self._tf_listener.lookupTransform(DEFAULT_MAP_FRAME,
+                                                        DEFAULT_BASE_LINK_FRAME,
+                                                        rospy.Time(0))
+    
+        t = tf.transformations.translation_matrix(trans)
+        R = tf.transformations.quaternion_matrix(rot) 
 
-            # acqurie robot pose wrt "MAP"
-            self.robot_pose_x_wrt_map = t[0] # x
-            self.robot_pose_y_wrt_map = t[1] # y
+        # acqurie robot pose wrt "MAP"
+        self.robot_pose_x_wrt_map = t[0] # x
+        self.robot_pose_y_wrt_map = t[1] # y
 
-            (_,_,yaw) = euler_from_quaternion(R)
-            self.robot_heading_wrt_map = yaw # theta
+        (_,_,yaw) = euler_from_quaternion(R)
+        self.robot_heading_wrt_map = yaw # theta
 
-            return np.dot(t, R)
+        return np.dot(t, R)
 
-        except:
-            rospy.loginfo("transformation not working from %s to %s" 
-                            %(DEFAULT_BASE_LINK_FRAME, DEFAULT_MAP_FRAME))
+        # except:
+        #     rospy.loginfo("transformation not working from %s to %s" 
+        #                     %(DEFAULT_BASE_LINK_FRAME, DEFAULT_MAP_FRAME))
 
 
     def static_broadcaster(self):
