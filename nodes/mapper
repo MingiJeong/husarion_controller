@@ -11,10 +11,10 @@
 import rospy
 
 # import custom moduels
-from husarion_controller.rosbot_mapping import OccupancyGrid
+from husarion_controller.rosbot_mapping import Mapper
 
 def main():
-    Occ_map = OccupancyGrid()
+    Occ_map = Mapper()
     
     try:
        pass
