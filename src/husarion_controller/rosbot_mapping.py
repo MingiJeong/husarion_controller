@@ -106,7 +106,7 @@ class Mapper():
             self.map_T_odom = self.get_transform_odom_to_map() # odom wrt map
             self.map_T_base = self.get_transform_baselink_to_map() # baselink wrt map
 
-            if self.check_mapping_condition:
+            if self.check_mapping_condition():
                 
                 # rospy.loginfo("transformation working well {} {}".format(map_T_scan, map_T_odom))
                 for i, data in enumerate(laser_msg.ranges):
