@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+"""
+    rosbot_setup.py
+
+    purpose: 
+    - ROSBOT class definition 
+    - subscriber and publisher for ROSBOT conducting tasks
+"""
+
 # import relevant libraries
 import rospy
 
@@ -47,9 +55,12 @@ class ROSBOT():
 
 
     def get_heading(odom_msg):
+        """
+        Function to get yaw (heading) on 2D plane
+        """
         orientation_q = odom_msg.pose.pose.orientation
         orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-        (roll,pitch,yaw) = euler_from_quaternion(orientation_list)
+        (_,_,yaw) = euler_from_quaternion(orientation_list)
 
         return yaw
 
@@ -160,11 +171,8 @@ class ROSBOT():
             self.rotate_rel(- math.pi/6)
             rospy.loginfo("rotation 2 finish")
 
-
             self.rotate_abs(math.pi * 3/4)
             rospy.loginfo("rotation abs finish")
-
-            # self.rate.sleep()
 
 
         except rospy.ROSInterruptException:
