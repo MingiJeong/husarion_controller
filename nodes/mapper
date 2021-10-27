@@ -17,9 +17,10 @@ def main():
     occ_map = Mapper()
     
     try:
-        occ_map._update_laser_data()  
+        occ_map._update_laser_data() 
+        occ_map.spin()
         # continuous subscription for laser_scan 
-        rospy.spin()
+        # rospy.spin()
 
     except rospy.ROSInterruptException:
         rospy.logerr("ROS Node interrupted")

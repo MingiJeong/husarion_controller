@@ -97,7 +97,7 @@ class Mapper():
 
     def _laser_callback(self, laser_msg):
         
-        self.static_broadcaster()
+    
 
         # process laser data once we receive initial data
         if self.laser_data_update == MapLaserUpdate.received:
@@ -277,6 +277,11 @@ class Mapper():
 
         broadcaster.sendTransform(static_transformStamped)
 
+    def spin(self):
+        while not rospy.is_shutdown():
+            self.static_broadcaster()
+
+            self.rate.sleep()
 
     def build_map(self):
         """
@@ -308,6 +313,6 @@ class Mapper():
 
         # publishing
         self._map_pub.publish(map_msg)
-	# self.static_broadcaster()
-        self.rate.sleep()
+	    # self.static_broadcaster()
+        # self.rate.sleep()
 
