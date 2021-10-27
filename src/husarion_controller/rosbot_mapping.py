@@ -243,7 +243,7 @@ class Mapper():
         self.robot_pose_x_wrt_map = t[0] # x
         self.robot_pose_y_wrt_map = t[1] # y
 
-        (_,_,yaw) = euler_from_quaternion(R)
+        (_,_,yaw) = euler_from_quaternion(rot)
         self.robot_heading_wrt_map = yaw # theta
 
         return np.dot(t, R)
