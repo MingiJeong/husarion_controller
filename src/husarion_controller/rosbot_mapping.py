@@ -110,7 +110,7 @@ class Mapper():
                 
                 # rospy.loginfo("transformation working well {} {}".format(map_T_scan, map_T_odom))
                 for i, data in enumerate(laser_msg.ranges):
-                    transformed_coor.append(np.dot(map_T_scan, data))
+                    transformed_coor.append(np.dot(self.map_T_scan, data))
 
                 rospy.loginfo("transformed {}".format(transformed_coor))
 
