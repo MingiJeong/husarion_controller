@@ -24,7 +24,7 @@ DEFAULT_MAP_TOPIC = "map"
 DEFAULT_SCAN = 'scan'
 
 
-class OccupancyGrid():
+class Mapper():
     def __init__(self):
         """ constructor """
         self.rate = rospy.Rate(MAP_FREQ)
