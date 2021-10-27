@@ -17,6 +17,7 @@ def main():
     Occ_map = Mapper()
     
     try:
+        # continuous subscription for laser_scan 
        rospy.spin()
 
     except rospy.ROSInterruptException:
