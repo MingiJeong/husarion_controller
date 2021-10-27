@@ -26,7 +26,7 @@ from enum import Enum
 
 # constants
 MAP_FREQ = 10 # Hz
-TRANSFORM_DURATION = 3 # sec
+TRANSFORM_DURATION = 5 # sec
 
 DEFAULT_MAP_TOPIC = "map"
 DEFAULT_SCAN_TOPIC = 'scan'
@@ -96,6 +96,7 @@ class Mapper():
 
 
     def _laser_callback(self, laser_msg):
+	self.static_broadcaster()
 
         # process laser data once we receive initial data
         if self.laser_data_update == MapLaserUpdate.received:
@@ -306,6 +307,6 @@ class Mapper():
 
         # publishing
         self._map_pub.publish(map_msg)
-        self.static_broadcaster()
+	# self.static_broadcaster()
         self.rate.sleep()
 
