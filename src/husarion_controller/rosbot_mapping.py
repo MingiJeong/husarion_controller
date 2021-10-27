@@ -40,7 +40,7 @@ class OccupancyGrid():
 
     def _laser_callback(self, laser_msg):
         # do something for mapping
-        pass
+        self.build_map()
 
 
     def build_map(self):
@@ -63,3 +63,6 @@ class OccupancyGrid():
         _grid_1d[:] = -1 # unknown
 
         _grid_2d = np.reshape(_grid_1d, (self.height, self.width))
+
+        self._map_pub.publish(map_msg)
+        self.rate.sleep()
