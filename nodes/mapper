@@ -14,11 +14,12 @@ import rospy
 from husarion_controller.rosbot_mapping import Mapper
 
 def main():
-    Occ_map = Mapper()
+    occ_map = Mapper()
     
     try:
+        occ_map._update_laser_data()  
         # continuous subscription for laser_scan 
-       rospy.spin()
+        rospy.spin()
 
     except rospy.ROSInterruptException:
         rospy.logerr("ROS Node interrupted")
