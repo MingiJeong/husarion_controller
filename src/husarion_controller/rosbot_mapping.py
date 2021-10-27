@@ -92,7 +92,7 @@ class Mapper():
             map_T_scan = self.get_transform_scan_to_map()
             map_T_odom = self.get_transform_odom_to_map()
 
-            rospy.loginfo("transformation working well {} {}".format(map_T_scan, map_T_odom))
+            # rospy.loginfo("transformation working well {} {}".format(map_T_scan, map_T_odom))
 
             # do something for mapping
             self.build_map()
