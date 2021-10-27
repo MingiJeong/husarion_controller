@@ -99,8 +99,9 @@ class Mapper():
         
         # process laser data once we receive initial data
         if self.laser_data_update == MapLaserUpdate.received:
-            global transformed_coord
+            global transformed_coord, ray_cast_index
             transformed_coord = []
+            ray_cast_index = []
 
             # transformation matrix 
             self.map_T_scan = self.get_transform_scan_to_map() # scan wrt map
@@ -109,25 +110,44 @@ class Mapper():
 
             if self.check_mapping_condition():
                 
-                # rospy.loginfo("transformation working well {} {}".format(map_T_scan, map_T_odom))
+                robot_col, robot_row = self.xy_to_colrow(self.robot_pose_x_wrt_map,
+                                                         self.robot_pose_y_wrt_map)
+
                 for i, data in enumerate(laser_msg.ranges):
                     self.process_scanpoint_to_vec(i, data, laser_msg)
+                    self.raycast_build(transformed_coord[i])
 
-                rospy.loginfo("transformed {}".format(transformed_coord))
+                rospy.loginfo("transformed {}".format(ray_cast_index))
 
                 # do something for mapping
                 self.build_map()
 
 
+    def raycast_build(self, scan_xy):
+        if scan_xy != np.nan:
+            scan_col, scan_row = self.xy_to_colrow(scan_xy[0], scan_xy[1])
+            ray_cast_index.append([scan_col, scan_row])
+        
+        else:
+            ray_cast_index.append(np.nan)
+
+
     def process_scanpoint_to_vec(self, i, data, laser_msg):
+        """
+        convert the scan point data (distance) into 4 x 1 vector to multiply with map_T_scan matrix
+        """
         
-        angle = laser_msg.angle_min + i * laser_msg.angle_increment
-        x = data * np.cos(angle)
-        y = data * np.sin(angle)
+        if math.isfinite(data): # valid data
+            angle = laser_msg.angle_min + i * laser_msg.angle_increment
+            x = data * np.cos(angle)
+            y = data * np.sin(angle)
 
-        transformed_coord.append(self.map_T_scan.dot(np.transpose(np.array([x,y,0,1]))))
+            transformed_coord.append(self.map_T_scan.dot(np.transpose(np.array([x,y,0,1]))))
 
+        else: # inf data measurement by laser
+            transformed_coord.append(np.nan)
         
+
     def check_mapping_condition(self):
         """
         check the pre-requisite valid mapping conditions are met
