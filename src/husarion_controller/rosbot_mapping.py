@@ -110,8 +110,8 @@ class Mapper():
 
             if self.check_mapping_condition():
                 
-                robot_col, robot_row = self.xy_to_colrow(np.ndarray.item(self.robot_pose_x_wrt_map),
-                                                         np.ndarray.item(self.robot_pose_y_wrt_map))
+                robot_col, robot_row = self.xy_to_colrow(self.robot_pose_x_wrt_map,
+                                                         self.robot_pose_y_wrt_map)
 
                 for i, data in enumerate(laser_msg.ranges):
                     self.process_scanpoint_to_vec(i, data, laser_msg)
@@ -124,13 +124,14 @@ class Mapper():
 
 
     def raycast_build(self, scan_xy):
-        if scan_xy != np.nan:
-            scan_col, scan_row = self.xy_to_colrow(np.ndarray.item(scan_xy[0]), 
-                                                   np.ndarray.item(scan_xy[1]))
+        print("scan", scan_xy)
+        if np.isfinite(scan_xy[0]) and np.isfinite(scan_xy[1]):
+            scan_col, scan_row = self.xy_to_colrow(scan_xy[0],
+                                                   scan_xy[1])
             ray_cast_index.append([scan_col, scan_row])
         
-        else:
-            ray_cast_index.append(np.nan)
+        #else:
+        #    ray_cast_index.append([np.nan, np.nan])
 
 
     def process_scanpoint_to_vec(self, i, data, laser_msg):
@@ -138,7 +139,7 @@ class Mapper():
         convert the scan point data (distance) into 4 x 1 vector to multiply with map_T_scan matrix
         """
         
-        if math.isfinite(data): # valid data
+        if np.isfinite(data): # valid data
             angle = laser_msg.angle_min + i * laser_msg.angle_increment
             x = data * np.cos(angle)
             y = data * np.sin(angle)
@@ -146,7 +147,7 @@ class Mapper():
             transformed_coord.append(self.map_T_scan.dot(np.transpose(np.array([x,y,0,1]))))
 
         else: # inf data measurement by laser
-            transformed_coord.append(np.nan)
+            transformed_coord.append([np.nan, np.nan, np.nan, np.nan])
         
 
     def check_mapping_condition(self):
@@ -185,7 +186,7 @@ class Mapper():
             x: coord_x (m)
             y: coord_y (m)
         """
-
+	print(x,y)
         i = int((y - self.map_origin_y) // self.resolution) # row
         j = int((x - self.map_origin_x) // self.resolution) # col
 
@@ -269,8 +270,8 @@ class Mapper():
             R = tf.transformations.quaternion_matrix(rot) 
 
             # acqurie robot pose wrt "MAP"
-            self.robot_pose_x_wrt_map = t[0] # x
-            self.robot_pose_y_wrt_map = t[1] # y
+            self.robot_pose_x_wrt_map = trans[0] # x
+            self.robot_pose_y_wrt_map = trans[1] # y
 
             (_,_,yaw) = euler_from_quaternion(rot)
             self.robot_heading_wrt_map = yaw # theta
