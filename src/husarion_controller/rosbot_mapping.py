@@ -78,7 +78,7 @@ class Mapper():
         laser_msg = rospy.wait_for_message(DEFAULT_SCAN_TOPIC, LaserScan)
         self.laser_ang_min = laser_msg.angle_min
         self.laser_ang_max = laser_msg.angle_max
-        self.laser_angle_inc = laser_msg.angle_inc
+        self.laser_angle_inc = laser_msg.angle_increment
         self.range_min = laser_msg.range_min
         self.range_max = laser_msg.range_max
         self.laser_data_update = MapLaserUpdate.received
