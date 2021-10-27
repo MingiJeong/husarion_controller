@@ -54,7 +54,7 @@ class ROSBOT():
         self.heading = self.get_heading(odom_msg)
 
 
-    def get_heading(odom_msg):
+    def get_heading(self, odom_msg):
         """
         Function to get yaw (heading) on 2D plane
         """
