@@ -110,8 +110,8 @@ class Mapper():
 
             if self.check_mapping_condition():
                 
-                robot_col, robot_row = self.xy_to_colrow(self.robot_pose_x_wrt_map,
-                                                         self.robot_pose_y_wrt_map)
+                robot_col, robot_row = self.xy_to_colrow(np.ndarray.item(self.robot_pose_x_wrt_map),
+                                                         np.ndarray.item(self.robot_pose_y_wrt_map))
 
                 for i, data in enumerate(laser_msg.ranges):
                     self.process_scanpoint_to_vec(i, data, laser_msg)
