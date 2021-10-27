@@ -8,13 +8,15 @@
 """
 
 # import relevant libraries
-from husarion_controller.rosbot_setup import DEFAULT_CMD_VEL
+from numpy.core.numeric import True_
 import rospy
 import tf
 import tf2_ros
+import geometry_msgs.msg
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import OccupancyGrid
-import geometry_msgs.msg
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
+
 
 # import python modules
 import numpy as np
@@ -32,6 +34,7 @@ DEFAULT_SCAN_TOPIC = 'scan'
 DEFAULT_MAP_FRAME = "map"
 DEFAULT_ODOM_FRAME = "odom"
 DEFAULT_LASER_FRAME = "laser"
+DEFAULT_BASE_LINK_FRAME = "base_link"
 
 
 class MapLaserUpdate(Enum):
@@ -43,6 +46,10 @@ class Mapper():
     def __init__(self):
         """ constructor """
         self.rate = rospy.Rate(MAP_FREQ)
+
+        self.robot_heading_wrt_map = None
+        self.robot_pose_x_wrt_map = None
+        self.robot_pose_y_wrt_map = None
 
         # publisher and subscriber
         self._map_pub = rospy.Publisher(DEFAULT_MAP_TOPIC, OccupancyGrid, queue_size=1)
@@ -88,16 +95,35 @@ class Mapper():
 
         # process laser data once we receive initial data
         if self.laser_data_update == MapLaserUpdate.received:
-            
-            map_T_scan = self.get_transform_scan_to_map()
-            map_T_odom = self.get_transform_odom_to_map()
+            transformed_coor = []
 
-            # rospy.loginfo("transformation working well {} {}".format(map_T_scan, map_T_odom))
+            # transformation matrix 
+            map_T_scan = self.get_transform_scan_to_map() # scan wrt map
+            map_T_odom = self.get_transform_odom_to_map() # odom wrt map
+            map_T_base = self.get_transform_baselink_to_map() # baselink wrt map
 
-            # do something for mapping
-            self.build_map()
+            if self.check_mapping_condition:
+                
+                # rospy.loginfo("transformation working well {} {}".format(map_T_scan, map_T_odom))
+                for i, data in enumerate(laser_msg.ranges):
+                    transformed_coor.append(np.dot(map_T_scan, data))
+
+                rospy.loginfo("transformed {}".format(transformed_coor))
+
+                # do something for mapping
+                self.build_map()
 
 
+    def check_mapping_condition(self):
+        """
+        check the pre-requisite valid mapping conditions are met
+        """
+        if self.robot_heading_wrt_map is not None and \
+           self.robot_pose_x_wrt_map is not None and \
+           self.robot_pose_y_wrt_map is not None:
+            return True
+
+        return False
 
     def colrow_to_xy(self, j,i):
         """
@@ -128,7 +154,6 @@ class Mapper():
         return j, i
 
     # TODO: convert laser scan data into map frame (i,j) transformation
-
     def check_inside_map(self, i, j):
         """
         check the given col, row index is bounded by the maximum map area
@@ -137,6 +162,8 @@ class Mapper():
             if j <= self.width and i <= self.height:
                 return True
 
+    def transform_ray_to_map(self, laser_msg):
+        pass
 
 
     def get_transform_scan_to_map(self):
@@ -175,6 +202,7 @@ class Mapper():
             (trans, rot) = self._tf_listener.lookupTransform(DEFAULT_MAP_FRAME,
                                                             DEFAULT_ODOM_FRAME,
                                                             rospy.Time(0))
+        
             t = tf.transformations.translation_matrix(trans)
             R = tf.transformations.quaternion_matrix(rot) 
 
@@ -183,6 +211,37 @@ class Mapper():
         except:
             rospy.loginfo("transformation not working from %s to %s" 
                             %(DEFAULT_ODOM_FRAME, DEFAULT_MAP_FRAME))
+
+
+    def get_transform_baselink_to_map(self):
+        """
+        obtain transformation matrix between odom and map
+        """
+        try:
+            self._tf_listener.waitForTransform(DEFAULT_MAP_FRAME,
+                                            DEFAULT_BASE_LINK_FRAME, 
+                                            rospy.Time(0), 
+                                            rospy.Duration(TRANSFORM_DURATION))
+
+            (trans, rot) = self._tf_listener.lookupTransform(DEFAULT_MAP_FRAME,
+                                                            DEFAULT_BASE_LINK_FRAME,
+                                                            rospy.Time(0))
+        
+            t = tf.transformations.translation_matrix(trans)
+            R = tf.transformations.quaternion_matrix(rot) 
+
+            # acqurie robot pose wrt "MAP"
+            self.robot_pose_x_wrt_map = t[0] # x
+            self.robot_pose_y_wrt_map = t[1] # y
+
+            (_,_,yaw) = euler_from_quaternion(R)
+            self.robot_heading_wrt_map = yaw # theta
+
+            return np.dot(t, R)
+
+        except:
+            rospy.loginfo("transformation not working from %s to %s" 
+                            %(DEFAULT_BASE_LINK_FRAME, DEFAULT_MAP_FRAME))
 
 
     def static_broadcaster(self):
