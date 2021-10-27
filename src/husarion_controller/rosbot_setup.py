@@ -10,7 +10,6 @@
 
 # import relevant libraries
 import rospy
-
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
@@ -46,6 +45,7 @@ class ROSBOT():
 
 
     def _laser_callback(self, laser_msg):
+        # do something for extracting the dead head data (pretty simple)
         pass
 
     

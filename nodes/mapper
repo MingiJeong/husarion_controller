@@ -1,32 +1,30 @@
 #!/usr/bin/env python
 
 """
-    main_controller.py
+    husarion_controller.py
 
     purpose: 
-    - NODE for main controller
+    - NODE for main husarion controller
 """
 
 # import relevant libraries
 import rospy
 
 # import custom moduels
-from husarion_controller.rosbot_setup import ROSBOT
+from husarion_controller.rosbot_mapping import OccupancyGrid
 
 def main():
-    rosbot = ROSBOT()
-
-    rospy.on_shutdown(rosbot.stop)
+    Occ_map = OccupancyGrid()
     
     try:
-       rosbot.spin()
+       pass
 
     except rospy.ROSInterruptException:
         rospy.logerr("ROS Node interrupted")
 
 if __name__ == "__main__":
 
-    rospy.init_node("basic_controller")
+    rospy.init_node("mapper")
     
     # Sleep for a few seconds to wait for the registration.
     rospy.sleep(2)
