@@ -51,6 +51,10 @@ class Mapper():
         self.robot_pose_x_wrt_map = None
         self.robot_pose_y_wrt_map = None
 
+        self.map_T_scan = None
+        self.map_T_odom = None
+        self.map_T_base = None
+
         # publisher and subscriber
         self._map_pub = rospy.Publisher(DEFAULT_MAP_TOPIC, OccupancyGrid, queue_size=1)
         self._laser_sub = rospy.Subscriber(DEFAULT_SCAN_TOPIC, LaserScan, self._laser_callback, queue_size=1)
@@ -98,9 +102,9 @@ class Mapper():
             transformed_coor = []
 
             # transformation matrix 
-            map_T_scan = self.get_transform_scan_to_map() # scan wrt map
-            map_T_odom = self.get_transform_odom_to_map() # odom wrt map
-            map_T_base = self.get_transform_baselink_to_map() # baselink wrt map
+            self.map_T_scan = self.get_transform_scan_to_map() # scan wrt map
+            self.map_T_odom = self.get_transform_odom_to_map() # odom wrt map
+            self.map_T_base = self.get_transform_baselink_to_map() # baselink wrt map
 
             if self.check_mapping_condition:
                 
@@ -120,7 +124,10 @@ class Mapper():
         """
         if self.robot_heading_wrt_map is not None and \
            self.robot_pose_x_wrt_map is not None and \
-           self.robot_pose_y_wrt_map is not None:
+           self.robot_pose_y_wrt_map is not None and \
+           self.map_T_scan is not None and \
+           self.map_T_base is not None and \
+           self.map_T_odom is not None:
             return True
 
         return False
