@@ -17,7 +17,7 @@ def main():
     Occ_map = Mapper()
     
     try:
-       pass
+       rospy.spin()
 
     except rospy.ROSInterruptException:
         rospy.logerr("ROS Node interrupted")
