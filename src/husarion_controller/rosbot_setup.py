@@ -46,7 +46,7 @@ class ROSBOT():
         self.heading = self.get_heading(odom_msg)
 
 
-    def get_heading(odom_msg):
+    def get_heading(self, odom_msg):
         orientation_q = odom_msg.pose.pose.orientation
         orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
         (roll,pitch,yaw) = euler_from_quaternion(orientation_list)
