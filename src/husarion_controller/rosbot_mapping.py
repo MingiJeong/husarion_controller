@@ -125,7 +125,8 @@ class Mapper():
 
     def raycast_build(self, scan_xy):
         if scan_xy != np.nan:
-            scan_col, scan_row = self.xy_to_colrow(scan_xy[0], scan_xy[1])
+            scan_col, scan_row = self.xy_to_colrow(np.ndarray.item(scan_xy[0]), 
+                                                   np.ndarray.item(scan_xy[1]))
             ray_cast_index.append([scan_col, scan_row])
         
         else:
