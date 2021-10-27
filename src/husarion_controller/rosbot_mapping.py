@@ -53,10 +53,10 @@ class Mapper():
         self.map_origin_x = 0
         self.map_origin_y = 0
         self.resolution = rospy.get_param("map_resolution", 0.05) # m/cell
-        self.width = rospy.get_param("width", 100) # cell ==> max_col
-        self.height = rospy.get_param("hegiht", 100) # cell ==> max_row
-        self.transform_data = (- self.resolution * self.width // 2, 
-                               - self.resolution * self.height // 2,
+        self.width = rospy.get_param("width", 200) # cell ==> max_col
+        self.height = rospy.get_param("hegiht", 200) # cell ==> max_row
+        self.transform_data = (- self.resolution * self.width / 2, 
+                               - self.resolution * self.height / 2,
                                0, 0, 0)  # transformed translation (x,y), rotation (r,p,y)
 
         self.map_max_x = self.width * self.resolution
@@ -238,8 +238,8 @@ class Mapper():
         # TODO: grid change
         map_msg.data = _grid_1d.astype(np.uint8) # grid explicit type casting
 
-
         # publishing
         self._map_pub.publish(map_msg)
         self.static_broadcaster()
         self.rate.sleep()
+
