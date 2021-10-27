@@ -31,6 +31,7 @@ include_directories(
 
 catkin_install_python(PROGRAMS
    nodes/main_controller
+   nodes/mapper
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
