@@ -26,7 +26,7 @@ from enum import Enum
 
 # constants
 MAP_FREQ = 10 # Hz
-TRANSFORM_DURATION = 5 # sec
+TRANSFORM_DURATION = 3 # sec
 
 DEFAULT_MAP_TOPIC = "map"
 DEFAULT_SCAN_TOPIC = 'scan'
@@ -45,6 +45,8 @@ class MapLaserUpdate(Enum):
 class Mapper():
     def __init__(self):
         """ constructor """
+
+        # essential properties
         self.rate = rospy.Rate(MAP_FREQ)
 
         self.robot_heading_wrt_map = None
@@ -54,6 +56,9 @@ class Mapper():
         self.map_T_scan = None
         self.map_T_odom = None
         self.map_T_base = None
+
+        self._grid_1d = None
+        self._grid_2d = None
 
         # publisher and subscriber
         self._map_pub = rospy.Publisher(DEFAULT_MAP_TOPIC, OccupancyGrid, queue_size=1)
@@ -65,15 +70,17 @@ class Mapper():
         self.map_origin_y = 0
         self.resolution = rospy.get_param("map_resolution", 0.05) # m/cell
         self.width = rospy.get_param("width", 200) # cell ==> max_col
-        self.height = rospy.get_param("hegiht", 200) # cell ==> max_row
+        self.height = rospy.get_param("height", 200) # cell ==> max_row
         self.transform_data = (- self.resolution * self.width / 2, 
                                - self.resolution * self.height / 2,
                                0, 0, 0)  # transformed translation (x,y), rotation (r,p,y)
 
         self.map_max_x = self.width * self.resolution
-        self.map_max_y = self.width * self.resolution
+        self.map_max_y = self.height * self.resolution
         self.map_min_x = self.map_origin_x
         self.map_min_y = self.map_origin_y
+
+        self.map_data_length = self.width * self.height
 
         # laser scanner data by ROSBOT
         self.laser_ang_min = None # rad
@@ -95,10 +102,25 @@ class Mapper():
         self.laser_data_update = MapLaserUpdate.received
 
 
+    def map_initializer(self):
+
+        if self._grid_2d is None:
+            _grid_1d = np.zeros(self.map_data_length)
+            _grid_1d[:] = -1 # unknown
+
+            self._grid_2d = np.reshape(_grid_1d, (self.height, self.width))
+
+        self.flip_map_row()
+
+
     def _laser_callback(self, laser_msg):
+        """
+        process laser data once we receive initial data
+        """
         
-        # process laser data once we receive initial data
         if self.laser_data_update == MapLaserUpdate.received:
+            # pre-requisites
+
             global transformed_coord, ray_cast_index
             transformed_coord = []
             ray_cast_index = []
@@ -108,30 +130,120 @@ class Mapper():
             self.map_T_odom = self.get_transform_odom_to_map() # odom wrt map
             self.map_T_base = self.get_transform_baselink_to_map() # baselink wrt map
 
+            """ check a map is good to be built """
             if self.check_mapping_condition():
-                
+                # map to be built
+                self.map_initializer()
+    
+                # 1) robot position on the map (col, row index)
                 robot_col, robot_row = self.xy_to_colrow(self.robot_pose_x_wrt_map,
                                                          self.robot_pose_y_wrt_map)
 
+                # 2) looping over each laser scan data on the map (col, row index)
                 for i, data in enumerate(laser_msg.ranges):
+                    # 2-1) valid scan converted to col, row index
                     self.process_scanpoint_to_vec(i, data, laser_msg)
                     self.raycast_build(transformed_coord[i])
 
-                rospy.loginfo("transformed {}".format(ray_cast_index))
+                    # 2-2) raycast by line find algorithm
+                    bresenham_result = self.bresenham_algorithm(robot_col, robot_row,
+                                                ray_cast_index[i][0], ray_cast_index[i][1])
 
-                # do something for mapping
+                    # 2-3) grid filling based on the line finding algorithm
+                    self.fill_grid_map(bresenham_result)
+
+
+                # 3) publish map
                 self.build_map()
+
+    def fill_grid_map(self, bresenham_result):
+        
+        # edge case
+        if bresenham_result is None:
+            return
+
+        # initialization
+        points_in_line, is_steep = bresenham_result
+
+        for k, point in enumerate(points_in_line):
+            if self.check_inside_map(point[1], point[0]):
+
+                if k < len(points_in_line) - 1:
+                    if self.check_inside_map(point[1], point[0]):
+                        continue # skip as already occupied
+                    self._grid_2d[point[1], point[0]] = 0 # (col, row) -> (row, col)
+                
+                else: # k == len(points_in_line) - 1:
+                    self._grid_2d[point[1], point[0]] = 100 # (col, row) -> (row, col)
+
+
+    def bresenham_algorithm(self, col_1, row_1, col_2, row_2):
+        """
+        reference: 
+        https://www.youtube.com/watch?v=hr9e2C_0RrQ
+        http://www.roguebasin.com/index.php/Bresenham%27s_Line_Algorithm#Python
+
+        start: col_1, row_1
+        end: col_2, row_2
+        """
+
+        # edge case
+        if not np.isfinite(col_2) or not np.isfinite(row_2):
+            return None
+
+        # valid laser scan check for being inside the map
+        if self.check_inside_map(col_2, row_2):
+
+            dx = col_2 - col_1
+            dy = row_2 - row_1
+
+            # steep
+            is_steep = abs(dy) > abs(dx)
+
+            if is_steep:
+                # swap
+                col_1, row_1 = row_1, col_1
+                col_2, row_2 = row_2, col_2
+
+            swapped = False
+            if col_1 > col_2:
+                col_1, col_2 = col_2, col_1
+                row_1, row_2 = row_2, row_1
+                swapped = True
+
+            dx = col_2 - col_1
+            dy = row_2 - row_1
+
+            # Calculate error
+            error = int(dx / 2.0)
+            ystep = 1 if row_1 < row_2 else -1
+
+            y = row_1
+            points_in_line = []
+            for x in range(col_1, col_2 + 1):
+                coord = (y, x) if is_steep else (x, y)
+
+                points_in_line.append(coord)
+                error -= abs(dy)
+                if error < 0:
+                    y += ystep
+                    error += dx
+
+            if swapped:
+                points_in_line.reverse()
+
+            return (points_in_line, is_steep)
 
 
     def raycast_build(self, scan_xy):
-        print("scan", scan_xy)
+
         if np.isfinite(scan_xy[0]) and np.isfinite(scan_xy[1]):
             scan_col, scan_row = self.xy_to_colrow(scan_xy[0],
                                                    scan_xy[1])
             ray_cast_index.append([scan_col, scan_row])
         
-        #else:
-        #    ray_cast_index.append([np.nan, np.nan])
+        else:
+            ray_cast_index.append([np.nan, np.nan])            
 
 
     def process_scanpoint_to_vec(self, i, data, laser_msg):
@@ -147,7 +259,7 @@ class Mapper():
             transformed_coord.append(self.map_T_scan.dot(np.transpose(np.array([x,y,0,1]))))
 
         else: # inf data measurement by laser
-            transformed_coord.append([np.nan, np.nan, np.nan, np.nan])
+            transformed_coord.append(np.array([np.nan, np.nan, np.nan, np.nan]))
         
 
     def check_mapping_condition(self):
@@ -186,19 +298,36 @@ class Mapper():
             x: coord_x (m)
             y: coord_y (m)
         """
-	print(x,y)
         i = int((y - self.map_origin_y) // self.resolution) # row
         j = int((x - self.map_origin_x) // self.resolution) # col
 
         return j, i
 
-    # TODO: convert laser scan data into map frame (i,j) transformation
-    def check_inside_map(self, i, j):
+
+    def check_map_occupied(self, j, i):
+        """
+        check the given col, row index is occupied in the map area
+
+        Arguments:
+            j: col
+            i: row
+        """
+
+        if self._grid_2d[j,i] == 100:
+            return True
+
+
+    def check_inside_map(self, j, i):
         """
         check the given col, row index is bounded by the maximum map area
+
+        Arguments:
+            j: col
+            i: row
+            
         """
         if i >= 0 and j>= 0:
-            if j <= self.width and i <= self.height:
+            if j <= self.width-1 and i <= self.height-1:
                 return True
 
     def transform_ray_to_map(self, laser_msg):
@@ -307,11 +436,12 @@ class Mapper():
 
         broadcaster.sendTransform(static_transformStamped)
 
-    def spin(self):
-        while not rospy.is_shutdown():
-            self.static_broadcaster()
+    def flip_map_row(self):
+        self._grid_2d = np.flipud(self._grid_2d)
 
-            self.rate.sleep()
+    def flatten_grid_2d(self):
+        self._grid_1d = self._grid_2d.flatten()
+
 
     def build_map(self):
         """
@@ -332,17 +462,21 @@ class Mapper():
         map_msg.info.origin.position.x = self.map_origin_x
         map_msg.info.origin.position.y = self.map_origin_y
 
-        _grid_1d = np.zeros(len(map_msg.data))
-        _grid_1d[:] = -1 # unknown
+        # flip after all processed
+        self.flip_map_row()
 
-        _grid_2d = np.reshape(_grid_1d, (self.height, self.width))
-
-
-        # TODO: grid change
-        map_msg.data = _grid_1d.astype(np.uint8) # grid explicit type casting
+        # publish purpose flip
+        tmp = np.flipud(self._grid_2d).flatten()
+        map_msg.data = tmp.astype(np.uint8) # grid explicit type casting
 
         # publishing
         self._map_pub.publish(map_msg)
-	    # self.static_broadcaster()
-        # self.rate.sleep()
+        
 
+    def spin(self):
+        """ multi-threading enabler for map publisher vs other subscribers
+        """
+        while not rospy.is_shutdown():
+            self.static_broadcaster()
+
+            self.rate.sleep()
