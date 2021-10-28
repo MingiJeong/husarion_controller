@@ -24,17 +24,20 @@ import math
 import sys
 from enum import Enum
 
+# custom module
+from husarion_controller import constant
+
 # constants
-MAP_FREQ = 10 # Hz
-TRANSFORM_DURATION = 3 # sec
+MAP_FREQ = constant.MAP_FREQ
+TRANSFORM_DURATION = constant.TRANSFORM_DURATION
 
-DEFAULT_MAP_TOPIC = "map"
-DEFAULT_SCAN_TOPIC = 'scan'
+DEFAULT_MAP_TOPIC = constant.DEFAULT_MAP_TOPIC
+DEFAULT_SCAN_TOPIC = constant.DEFAULT_SCAN_TOPIC
 
-DEFAULT_MAP_FRAME = "map"
-DEFAULT_ODOM_FRAME = "odom"
-DEFAULT_LASER_FRAME = "laser"
-DEFAULT_BASE_LINK_FRAME = "base_link"
+DEFAULT_MAP_FRAME = constant.DEFAULT_MAP_FRAME
+DEFAULT_ODOM_FRAME = constant.DEFAULT_ODOM_FRAME
+DEFAULT_LASER_FRAME = constant.DEFAULT_LASER_FRAME
+DEFAULT_BASE_LINK_FRAME = constant.DEFAULT_BASE_LINK_FRAME
 
 
 class MapLaserUpdate(Enum):
@@ -80,7 +83,10 @@ class Mapper():
         self.map_min_x = self.map_origin_x
         self.map_min_y = self.map_origin_y
 
+
         self.map_data_length = self.width * self.height
+        self.map_msg = None
+        self.ready_to_publish = False # flipped condition due to multi threading
 
         # laser scanner data by ROSBOT
         self.laser_ang_min = None # rad
@@ -103,7 +109,9 @@ class Mapper():
 
 
     def map_initializer(self):
-
+        """
+        initializing the map data and flip
+        """
         if self._grid_2d is None:
             _grid_1d = np.zeros(self.map_data_length)
             _grid_1d[:] = -1 # unknown
@@ -111,6 +119,8 @@ class Mapper():
             self._grid_2d = np.reshape(_grid_1d, (self.height, self.width))
 
         self.flip_map_row()
+
+        self.ready_to_publish = False
 
 
     def _laser_callback(self, laser_msg):
@@ -447,36 +457,45 @@ class Mapper():
         """
         building and filling the Occupancy grid map
         """
-        map_msg = OccupancyGrid()
+        self.map_msg = OccupancyGrid()
 
         # header
-        map_msg.header.frame_id = DEFAULT_MAP_FRAME
-        map_msg.header.stamp = rospy.Time.now()
+        self.map_msg.header.frame_id = DEFAULT_MAP_FRAME
+        self.map_msg.header.stamp = rospy.Time.now()
 
         # info
-        map_msg.info.resolution = self.resolution
-        map_msg.info.width = self.width
-        map_msg.info.height = self.height
-        map_msg.data = range(self.width * self.height)
+        self.map_msg.info.resolution = self.resolution
+        self.map_msg.info.width = self.width
+        self.map_msg.info.height = self.height
+        self.map_msg.data = range(self.width * self.height)
 
-        map_msg.info.origin.position.x = self.map_origin_x
-        map_msg.info.origin.position.y = self.map_origin_y
+        self.map_msg.info.origin.position.x = self.map_origin_x
+        self.map_msg.info.origin.position.y = self.map_origin_y
 
         # flip after all processed
         self.flip_map_row()
 
-        # publish purpose flip
-        tmp = np.flipud(self._grid_2d).flatten()
-        map_msg.data = tmp.astype(np.uint8) # grid explicit type casting
+        self.ready_to_publish = True
 
-        # publishing
-        self._map_pub.publish(map_msg)
-        
+    def publsih_map(self):
+        # edge case check
+        if self._grid_2d is not None and \
+            self.map_msg is not None:
+
+            if self.ready_to_publish:
+                # publish purpose flip
+                tmp = np.flipud(self._grid_2d).flatten()
+                self.map_msg.data = tmp.astype(np.int8) # grid explicit type casting
+                
+                self._map_pub.publish(self.map_msg)
+
 
     def spin(self):
-        """ multi-threading enabler for map publisher vs other subscribers
+        """ 
+        multi-threading enabler for map publisher vs other subscribers
         """
         while not rospy.is_shutdown():
             self.static_broadcaster()
+            self.publsih_map()
 
             self.rate.sleep()

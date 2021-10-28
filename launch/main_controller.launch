@@ -1,0 +1,7 @@
+<launch>
+    
+    <!-- main controller -->
+    <node pkg="husarion_controller" type="main_controller" name="main_controller" output="screen" />
+    
+
+</launch>

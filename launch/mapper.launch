@@ -1,0 +1,11 @@
+<launch>
+    <!-- launching arguments passed for robot load task -->
+    <arg name="setup_yaml" value='setup.yaml'/>
+    
+    <!-- main controller -->
+    <node pkg="husarion_controller" type="mapper" name="mapper" output="screen">
+        <rosparam file="$(find husarion_controller)/config/$(arg setup_yaml)" command="load"/>
+    </node>
+    
+
+</launch>

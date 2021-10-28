@@ -19,14 +19,17 @@ from nav_msgs.msg import Odometry
 import numpy as np
 import math
 
-# constants
-FREQUENCY = 10 # Hz
-LIN_VEL = 0.2 # m/s
-ANG_VEL = math.pi/18 # rad/s
+# custom module
+from husarion_controller import constant
 
-DEFAULT_CMD_VEL = 'cmd_vel'
-DEFAULT_SCAN = 'scan'
-DEFAULT_ODOM = 'odom'
+# constants
+FREQUENCY = constant.FREQUENCY # Hz
+LIN_VEL = constant.LIN_VEL # m/s
+ANG_VEL = constant.ANG_VEL # rad/s
+
+DEFAULT_CMD_VEL = constant.DEFAULT_CMD_VEL
+DEFAULT_SCAN_TOPIC = constant.DEFAULT_SCAN_TOPIC
+DEFAULT_ODOM = constant.DEFAULT_ODOM
 
 class ROSBOT():
     def __init__(self):
@@ -39,7 +42,7 @@ class ROSBOT():
         self._cmd_pub = rospy.Publisher(DEFAULT_CMD_VEL, Twist, queue_size=1)
 
         self._odom_sub = rospy.Subscriber(DEFAULT_ODOM, Odometry, self._odom_callback, queue_size=1)
-        self._laser_sub = rospy.Subscriber(DEFAULT_SCAN, LaserScan, self._laser_callback, queue_size=1)
+        self._laser_sub = rospy.Subscriber(DEFAULT_SCAN_TOPIC, LaserScan, self._laser_callback, queue_size=1)
         self.lin_vel = LIN_VEL
         self.ang_vel = ANG_VEL
 
