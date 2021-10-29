@@ -6,6 +6,7 @@ import math
 # ----------------------------
 MAP_FREQ = 5 # Hz
 TRANSFORM_DURATION = 3 # sec
+MAPPING_DIST_THRESH = 7 # m
 
 DEFAULT_MAP_TOPIC = "map"
 # DEFAULT_SCAN_TOPIC = "scan"

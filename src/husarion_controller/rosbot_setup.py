@@ -165,8 +165,8 @@ class ROSBOT():
     def spin(self):
         # while not rospy.is_shutdown():
         try: 
-            self.translate(1)
-            rospy.loginfo("translation finish")
+            # self.translate(1)
+            # rospy.loginfo("translation finish")
 
             self.rotate_rel(math.pi/6)
             rospy.loginfo("rotation 1 finish")

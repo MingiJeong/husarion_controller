@@ -53,4 +53,4 @@ roslaunch husarion_controller main_controller.launch
 roslaunch husarion_controller mapper.launch
 ```
 
-![screenshot](/images/screenshot.png)
+![screenshot](/images/screenshot2.png)

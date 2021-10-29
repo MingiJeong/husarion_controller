@@ -14,8 +14,13 @@ import rospy
 from husarion_controller.rosbot_mapping import Mapper
 
 def main():
-    occ_map = Mapper()
+    resolution = rospy.get_param("~map_resolution") # m/cell
+    width = rospy.get_param("~width") # cell ==> max_col
+    height = rospy.get_param("~height") # cell ==> max_row
+
+    occ_map = Mapper(resolution, width, height)
     
+
     try:
         occ_map._update_laser_data() 
         occ_map.spin()
