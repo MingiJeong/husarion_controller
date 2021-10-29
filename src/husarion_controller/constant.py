@@ -9,14 +9,13 @@ TRANSFORM_DURATION = 3 # sec
 MAPPING_DIST_THRESH = 7 # m
 
 DEFAULT_MAP_TOPIC = "map"
-# DEFAULT_SCAN_TOPIC = "scan"
-DEFAULT_SCAN_TOPIC = 'base_scan'
+DEFAULT_SCAN_TOPIC = "scan" # rosbot
+# DEFAULT_SCAN_TOPIC = 'base_scan' # stage
 
 DEFAULT_MAP_FRAME = "map"
 DEFAULT_ODOM_FRAME = "odom"
-# DEFAULT_LASER_FRAME = "laser"
-DEFAULT_LASER_FRAME = "base_laser_link"
-
+DEFAULT_LASER_FRAME = "laser" # rosbot
+# DEFAULT_LASER_FRAME = "base_laser_link" # stage
 DEFAULT_BASE_LINK_FRAME = "base_link"
 # ----------------------------
 
